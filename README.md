@@ -2,8 +2,8 @@
 CS2 RockTheVote + Nominate plugin for CounterStrikeSharp written in C#. It is my first ever work made in C# so probably most of it doesn't have any sense, could be done better etc but it does somehow work.
 Sometimes I took some pattern of some code from other open-source plugins such as:
 - [Mapchooser by Justinnobledev](https://github.com/justinnobledev/cs2-mapchooser)
-- [Abnerfs RTV](https://github.com/abnerfs/cs2-rockthevote)
-( Probably more but I do not really remember from which plugins so sorry about that :< )
+- [Abnerfs RTV](https://github.com/abnerfs/cs2-rockthevote) <br>
+( Probably more plugin but I do not really remember from which plugins so sorry about that :< )
 
 ## [📝] Commands:
 - !rtv
