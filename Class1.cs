@@ -7,6 +7,7 @@ using CounterStrikeSharp.API.Core.Capabilities;
 using MenuManager;
 using CounterStrikeSharp.API.Modules.Cvars;
 using CounterStrikeSharp.API.Modules.Utils;
+using CounterStrikeSharp.API.Modules.Menu;
 
 
 
@@ -16,6 +17,7 @@ public class PoorRTVConfig : BasePluginConfig
 { 
     [JsonPropertyName("Percentage")] public int Percentage { get; set; } = 50;
     [JsonPropertyName("Nominate")] public bool NominateCFG { get; set; } = true;
+    [JsonPropertyName("EndMapVote")] public bool EndMapVote { get; set; } = false;
     [JsonPropertyName("TimeToVote")] public float TimeToVote { get; set; } = 10;
     [JsonPropertyName("DisplayMaps")] public int DisplayMaps { get; set; } = 6;
     [JsonPropertyName("IncludeLast")] public bool IncludeLast { get; set; } = false;
@@ -45,6 +47,7 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
     public int IncludeLastX;
     public string MenuServerType;
     public int Displaymaps;
+    public bool EndMapVote;
     /* Abym sie nie zajebal w akcji:
      * 
      * RTVCache - If player used !rtv
@@ -82,12 +85,14 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
         Debug = config.Debug;
         TimeToVote = config.TimeToVote;
         Percentage = config.Percentage;
+        NominateCFG = config.NominateCFG;
         Shuffle = config.Shuffle;
         IncludeLast = config.IncludeLast;
         IncludeLastX = config.IncludeLastX;
         Displaymaps = config.DisplayMaps;
         StoreTime = config.TimeToVote;
         MenuServerType = config.MenuServerType;
+        EndMapVote = config.EndMapVote;
     }
 
     public override void Load(bool hotReload)
@@ -382,7 +387,8 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
 
             }, CounterStrikeSharp.API.Modules.Timers.TimerFlags.REPEAT);
         }
-        var menu = _api.NewMenu($" {Localizer["menuname"]}");
+        //var menu = _api.NewMenu($" {Localizer["menuname"]}");
+        var menu = CreateMenu($" {Localizer["menuname"]}");
         int mapdisplayed = 0;
         foreach (var maps in Maps)
         {
@@ -468,6 +474,7 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
 
     public void CheckTimeLeft()
     {
+        if(EndMapVote == false) { return; }
         TimeLimit = ConVar.Find("mp_timelimit")?.GetPrimitiveValue<float>() ?? 0;
         if(TimeLimit == 0) { return; }
         myTimer = AddTimer(5.0f, () =>
@@ -479,7 +486,7 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
                 if (TimeLimit - currMin == 2 && VotingAllowed)
                 {
                     VotingAllowed = false;
-                    //Server.PrintToChatAll($" {ChatColors.DarkRed} Glosowanie zostanie wlaczone");
+                    Server.PrintToChatAll($" {Localizer["prefix"]} {Localizer["endvotestart"]}");
                     EnableVoting();
                     myTimer.Kill();
                 }
@@ -489,7 +496,12 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
     [ConsoleCommand("css_nominate", "Nominate map")]
     public void Nominate(CCSPlayerController? player, CommandInfo commandInfo)
     {
-        if (player.IsBot || player.IsHLTV || player == null || NominateCFG == false) { return; }
+        //Server.PrintToChatAll($"Dziala. Nominate: {NominateCFG}, VotingAllowed: {VotingAllowed}");
+
+        if (player.IsBot || player.IsHLTV || player == null || NominateCFG == false) {
+            Server.PrintToChatAll("Returnuje");
+            return; 
+        }
         IDictionary<string, int> MapsDis = new Dictionary<string, int>();
         MapsDis = Maps.Take(Displaymaps).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         if(VotingAllowed == false)
@@ -497,19 +509,52 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
             return;
         }
         //var menu = _api.NewMenu("Nominate test");
-        var menu = _api.NewMenuForcetype("Nominate", MenuType.ChatMenu);
+        var menu = CreateMenu($" {Localizer["nominatemenu"]}");
+        //var menu = _api.NewMenuForcetype("Nominate", MenuType.ChatMenu);
             foreach (var item in Maps)
             {
                 if(MapsDis.ContainsKey(item.Key)) { continue; }
                 menu.AddMenuOption($"{item.Key}", (player, option) => { 
-                    player.PrintToChat($"Selected: {option.Text}");
+                    player.PrintToChat($" {Localizer["prefix"]} {Localizer["selected"]} {option.Text}");
                     Maps.Remove(item.Key);
-
                     Maps = (new Dictionary<string, int> { { item.Key, item.Value } }).Concat(Maps).ToDictionary(k => k.Key, v => v.Value);
+                    CounterStrikeSharp.API.Modules.Menu.MenuManager.CloseActiveMenu(player);
                 });
             }
 
             menu.Open(player);
+    }
+
+    public IMenu CreateMenu(string title)
+    {
+        var menu = _api.NewMenu(title);
+        MenuServerType = MenuServerType.ToLower();
+       //Server.PrintToChatAll(MenuServerType);
+        if (MenuServerType == "defaultmenu")
+        {
+            menu = _api.NewMenu(title);
+        }
+        else if(MenuServerType == "buttonmenu")
+        {
+            menu = _api.NewMenuForcetype(title, MenuType.ButtonMenu);
+        }
+        else if (MenuServerType == "centermenu")
+        {
+            menu = _api.NewMenuForcetype(title, MenuType.CenterMenu);
+        }
+        else if (MenuServerType == "consolemenu")
+        {
+            menu = _api.NewMenuForcetype(title, MenuType.ConsoleMenu);
+        }
+        else if (MenuServerType == "chatmenu")
+        {
+            menu = _api.NewMenuForcetype(title, MenuType.ChatMenu);
+        }
+        else
+        {
+            menu = _api.NewMenu(title);
+        }
+        return menu;
     }
 
     //Debug stuff:
