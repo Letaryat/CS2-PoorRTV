@@ -176,12 +176,13 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
             return;
         }
 
-        Server.PrintToChatAll("Playeruserid: " + playeruserid);
-        
+        //Server.PrintToChatAll("Playeruserid: " + playeruserid);
+
         if (RTVCache.ContainsKey(playeruserid!)){
             //Server.PrintToChatAll("Test");
             if (RTVCache[playeruserid!] == 0)
             {
+                Server.PrintToChatAll($" {Localizer["prefix"]} {Localizer["wantstovote", player.PlayerName.ToString()]}");
                 LoggingDebugging($"Player with ID: ${playeruserid} voted");
                 RTVCache[playeruserid!] = 1;
                 player.PrintToChat($" {Localizer["prefix"]} {Localizer["playerforrtv"]} ");
@@ -424,7 +425,7 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
         foreach (var player in Utilities.GetPlayers())
             {
                 if(player.IsBot || player.IsHLTV || player == null) { continue; }
-                Server.PrintToChatAll(player.PlayerName.ToString());
+                //Server.PrintToChatAll(player.PlayerName.ToString());
                 menu.Open(player);
 
                 AddTimer(StoreTime, () =>

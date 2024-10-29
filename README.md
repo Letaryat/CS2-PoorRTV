@@ -30,7 +30,7 @@ Sometimes I took some pattern of some code from other open-source plugins such a
   "IncludeLast": false, // Bool - If last played map has to be included in voting menu
   "IncludeLastX": 3, // Int - How many last played maps have to be not included in voting menu
   "Shuffle": true, // Bool - Do you want to shuffle the maps
-  "MenuType": "Button", // For now it does not work xD
+  "MenuType": "Button", // DefaultMenu, ButtonMenu, CenterMenu, ConsoleMenu, ChatMenu, (ButtonMenu is bugged, one player can vote for many maps. Best that works fine are ChatMenu and Centermenu in my opinion.)
   "Debug": true, // Bool - Do you want your console to be spammed with some random stuff
   "ConfigVersion": 1 // Do not touch I guess
 ```
@@ -51,7 +51,7 @@ Sometimes I took some pattern of some code from other open-source plugins such a
 - [Mapchooser by Justinnobledev](https://github.com/justinnobledev/cs2-mapchooser)
 
 ### [📋] ToDo:
-- Changing type of menu through config file.
+- ~~Changing type of menu through config file.~~
 
 ### [❓] FAQ:
 - **Is it better from other plugins?** <br>
