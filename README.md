@@ -54,7 +54,7 @@ Sometimes I took some pattern of some code from other open-source plugins such a
 - Changing type of menu through config file.
 
 ### [❓] FAQ:
-- **Is it better from other plugins?**
+- **Is it better from other plugins?** <br>
 I don't know, probably not. I know that I tried to fix some issues when map wouldn't change and RTV was blocked like it used to do in Abner on Surf servers where there are no rounds.
-- **Why should I use this one instead of other ones?**
+- **Why should I use this one instead of other ones?** <br>
 I think you should not use this instead of other ones. This plugin was purely made for fun and to learn some basic stuff how C# works. I have no experience in C and C# languages. I have tested it a little bit alone and it worked fine but of course there might be bugs, issues and stuff going around. If so, please report them in **issues** tab on github or even better if someone more experienced would like to help, explain errors and fix some code I would really appreciate that. 
