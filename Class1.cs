@@ -8,6 +8,7 @@ using MenuManager;
 using CounterStrikeSharp.API.Modules.Cvars;
 using CounterStrikeSharp.API.Modules.Utils;
 using CounterStrikeSharp.API.Modules.Menu;
+using Microsoft.Extensions.Logging;
 
 
 
@@ -135,6 +136,7 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
         AddTimer(1.0f, () =>
         {
             ClearVotingCache();
+            Logger.LogInformation($"Players in cache: {RTVCache.Count}");
         });
         myTimer = null;
     }
@@ -143,8 +145,7 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
     {
         if(IncludeLast == false)
         {
-            CurrentMap = Server.MapName;
-            
+            CurrentMap = Server.MapName;  
         } 
         if(IncludeLast == false || IncludeLastX > 0)
         {
@@ -153,7 +154,9 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
                 IncludeX.Add(CurrentMap);
             });
         }
-
+        ClearVotingCache();
+        Logger.LogInformation($"Mapend: Voting Allowed: {VotingAllowed}");
+        DebugAll();
     }
 
     [ConsoleCommand("css_rtv", "Rock the vote")]
@@ -214,6 +217,8 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
     public HookResult OnPlayerConnectFull(EventPlayerConnectFull @event, GameEventInfo info)
     {
         var playerid = @event.Userid.UserId.ToString();
+        var player = @event.Userid;
+        if (player.IsBot || player.IsHLTV) { return HookResult.Continue; }
         if (!RTVCache.ContainsKey(playerid))
         {
             RTVCache.Add(playerid, 0);
@@ -231,16 +236,18 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
     public HookResult OnPlayerDisconnect(EventPlayerDisconnect @event, GameEventInfo info)
     {
         var playerid = @event.Userid.UserId.ToString();
-        if(RTVCache.Count == 0) { return HookResult.Continue; }
+        var player = @event.Userid;
+        if (player.IsBot || player.IsHLTV) { return HookResult.Continue; }
+        if (RTVCache.Count == 0) { return HookResult.Continue; }
         if (RTVCache.ContainsKey(playerid)) 
         {
             RTVCache.Remove(playerid);
-            LoggingDebugging($"Player with ID {playerid} has been removed from RTV cache.");
+            LoggingDebugging($"Player {player.PlayerName} with ID {playerid} has been removed from RTV cache.");
         }
         if (IfVoted.Contains(playerid))
         {
             IfVoted.Remove(playerid);
-            LoggingDebugging($"Player with ID {playerid} has been removed from IFVoted cache.");
+            LoggingDebugging($"Player {player.PlayerName} with ID {playerid} has been removed from IFVoted cache.");
         }
 
 
@@ -269,16 +276,24 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
     public HookResult EventCsWinPanelMatch(EventCsWinPanelMatch @event, GameEventInfo info)
     {
         Server.PrintToChatAll($" {Localizer["prefix"]} {Localizer["changingmap",WonMap]}");
-        AddTimer(5.0f, () =>
+        //myTimer.Kill();
+        Server.NextFrame(() =>
         {
             ChangeMapMethod();
         });
-        
+
         return HookResult.Continue;
     }
 
     public void ChangeMapMethod()
     {
+        if(WonMap == null) { return; }
+
+        if(WonMap == CurrentMap)
+        {
+            LoggingDebugging($"Wonmap == CurrentMap: {WonMap}");
+        }
+
         if (Server.IsMapValid(WonMap))
         {
             Server.ExecuteCommand($"changelevel {WonMap}");
@@ -293,6 +308,7 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
          * - You fucked the name up
          * Probably it shouldn't be done like that but it works. So players can vote again when map has "changed" Cannot use ClearVotingCache method since it would fuck up RTVCache and players online on server.
          */
+        /*
         foreach (var key in RTVCache)
         {
             RTVCache[key.Key] = 0;
@@ -303,12 +319,14 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
         VotingAllowed = true;
         RTVByUsers = false;
         CountRTV = 0;
+        */
+        Logger.LogInformation($"ChangeMapMethod: {WonMap}");
     }
 
     public void VotedMap()
     {
         int maxValue = Maps.Values.Max();
-        if (maxValue == 0)
+        if (maxValue == 0 || WonMap == null)
         {
             ShuffleMaps();
             WonMap = Maps.First(x => x.Value == maxValue).Key;
@@ -374,6 +392,7 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
 
     public void EnableVoting()
     {
+        if(RTVCache.Count <= 0) { return; }
         VotingAllowed = false;
         bool EndTimer = false;
         var TimeCount = TimeToVote;
@@ -422,6 +441,7 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
             });
             mapdisplayed++;
         }
+
         foreach (var player in Utilities.GetPlayers())
             {
                 if(player.IsBot || player.IsHLTV || player == null) { continue; }
@@ -500,18 +520,20 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
         //Server.PrintToChatAll($"Dziala. Nominate: {NominateCFG}, VotingAllowed: {VotingAllowed}");
 
         if (player.IsBot || player.IsHLTV || player == null || NominateCFG == false) {
-            Server.PrintToChatAll("Returnuje");
+            LoggingDebugging("NominateCFG False or something idk");
             return; 
+        }
+        if (VotingAllowed == false)
+        {
+            player.PrintToChat($"{Localizer["prefix"]} Nominated is off because voting is not allowed!");
+            return;
         }
         IDictionary<string, int> MapsDis = new Dictionary<string, int>();
         MapsDis = Maps.Take(Displaymaps).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-        if(VotingAllowed == false)
-        {
-            return;
-        }
         //var menu = _api.NewMenu("Nominate test");
         var menu = CreateMenu($" {Localizer["nominatemenu"]}");
         //var menu = _api.NewMenuForcetype("Nominate", MenuType.ChatMenu);
+
             foreach (var item in Maps)
             {
                 if(MapsDis.ContainsKey(item.Key)) { continue; }
@@ -564,11 +586,34 @@ public class Poor_RockTheVote : BasePlugin, IPluginConfig<PoorRTVConfig>
     {
         if(Debug == true)
         {
-            Console.WriteLine($"{DateTime.Now} | Poor-RTV {message}");
+            Logger.LogInformation($"{DateTime.Now} | Poor-RTV | {message}");
+        }
+    }
+
+    public void DebugAll()
+    {
+        if(Debug == true)
+        {
+            Logger.LogInformation($"**** ALL DEBUG *****");
+            Logger.LogInformation($"Won map: {WonMap}");
+            Logger.LogInformation($"WarmupEnd: {WarmupEnd}");
+            Logger.LogInformation($"VotingAllowed: {VotingAllowed}");
+            Logger.LogInformation($"CountRTV: {CountRTV}");
+            Logger.LogInformation($"myTimer: {myTimer}");
         }
     }
 
     /*
+     * 
+     * RTVCache.Clear();
+        IfVoted.Clear();
+        TimeToVote = StoreTime;
+        WarmupEnd = false;
+        VotingAllowed = true;
+        CountRTV = 0;
+        RTVByUsers = false;
+     * 
+     * 
     public void MapDebuging()
     {
         LoggingDebugging("***** Maps: *****");
